@@ -1,6 +1,6 @@
-// Go example with comments
-// Package demonstrates Go-specific comment handling
-
+// Package main provides an example of Go syntax with comments.
+// This is a sample Go program for testing purposes.
+// Package main is an example package for testing purposes.
 package main
 
 import (
@@ -35,15 +35,21 @@ func (p *Person) String() string {
 	return fmt.Sprintf("Person{Name: %s, Age: %d}", p.Name, p.Age) // Return formatted string
 }
 
-// IsAdult checks if the person is an adult (18 or older)
+// IsAdult checks if the person is an adult (18 or older).
+const adultThreshold = 18
+
+// IsAdult returns true if the person is 18 or older.
 func (p *Person) IsAdult() bool {
-	return p.Age >= 18 // Adult threshold is 18
+	return p.Age >= adultThreshold
 }
 
-// main function demonstrates the Person struct
+// main function demonstrates the Person struct.
+const defaultAge = 25
+
+// main demonstrates the Person struct usage.
 func main() {
 	// Create a new person
-	person := NewPerson("Alice", 25) // Create Alice
+	person := NewPerson("Alice", defaultAge) // Create Alice
 	
 	/* Display person information
 	   This shows the string representation */

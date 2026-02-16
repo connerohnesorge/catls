@@ -35,7 +35,7 @@ func NewFileFilter(cfg *Config) *FileFilter {
 }
 
 // ShouldIncludeFile determines if a file should be included in output.
-func (f *FileFilter) ShouldIncludeFile(file scanner.FileInfo, cfg *Config) bool {
+func (*FileFilter) ShouldIncludeFile(file scanner.FileInfo, cfg *Config) bool {
 	// Skip binary files if requested
 	if cfg.OmitBins && file.IsBinary {
 		if cfg.Debug {

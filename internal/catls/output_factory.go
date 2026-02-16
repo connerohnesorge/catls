@@ -1,3 +1,4 @@
+// Package catls implements the core functionality for concatenating and formatting file listings.
 package catls
 
 import "fmt"

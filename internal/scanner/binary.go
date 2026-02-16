@@ -9,7 +9,10 @@ import (
 )
 
 // BinaryDetector defines the interface for detecting binary files.
+// BinaryDetector is used to determine if a file contains binary data.
 type BinaryDetector interface {
+	// IsBinary returns true if the file at the given path is binary.
+	// IsBinary checks if the file at the given path is binary.
 	IsBinary(path string) bool
 }
 
@@ -30,8 +33,8 @@ func (d *FileBinaryDetector) IsBinary(path string) bool {
 	return d.isBinaryByBytes(path)
 }
 
-// isBinaryByBytes checks for null bytes in the first 1024 bytes of a file.
-func (d *FileBinaryDetector) isBinaryByBytes(path string) bool {
+// isBinaryByBytes checks for null bytes in the first chunkSize bytes of a file.
+func (*FileBinaryDetector) isBinaryByBytes(path string) bool {
 	file, err := os.Open(path)
 	if err != nil {
 		return true // Assume binary if we can't read it
@@ -43,7 +46,8 @@ func (d *FileBinaryDetector) isBinaryByBytes(path string) bool {
 		}
 	}()
 
-	chunk := make([]byte, 1024)
+	const bufferSize = 1024
+	chunk := make([]byte, bufferSize)
 	n, err := file.Read(chunk)
 	if err != nil {
 		return true

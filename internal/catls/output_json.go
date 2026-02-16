@@ -36,7 +36,7 @@ func NewJSONOutput() *JSONOutput {
 }
 
 // WriteHeader writes the opening JSON structure (no-op for JSON).
-func (o *JSONOutput) WriteHeader(ctx context.Context) error {
+func (*JSONOutput) WriteHeader(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -48,7 +48,7 @@ func (o *JSONOutput) WriteHeader(ctx context.Context) error {
 }
 
 // WriteFile accumulates a processed file for later JSON output.
-func (o *JSONOutput) WriteFile(ctx context.Context, file ProcessedFile, cfg *Config) error {
+func (o *JSONOutput) WriteFile(ctx context.Context, file *ProcessedFile, _ *Config) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()

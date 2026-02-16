@@ -3,8 +3,14 @@ Copyright © 2025 Conner Ohnesorge <connerohnesorge@outlook.com>
 */
 package main
 
-import "github.com/connerohnesorge/catls/cmd"
+import (
+	"os"
+
+	"github.com/connerohnesorge/catls/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	if err := cmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }

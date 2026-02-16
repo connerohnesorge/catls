@@ -26,7 +26,10 @@ type ProcessedFile struct {
 }
 
 // TypeDetector defines interface for detecting file types.
+// TypeDetector is used to identify the type of a file.
 type TypeDetector interface {
+	// DetectType returns the file type for the given file path.
+	// DetectType returns the file type for the given file path.
 	DetectType(filePath string) string
 }
 
@@ -78,7 +81,7 @@ func (p *FileProcessor) ProcessFile(file scanner.FileInfo, filter *FileFilter) P
 }
 
 // readFileLines reads all lines from a file.
-func (p *FileProcessor) readFileLines(filePath string) ([]string, error) {
+func (*FileProcessor) readFileLines(filePath string) ([]string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -91,12 +94,12 @@ func (p *FileProcessor) readFileLines(filePath string) ([]string, error) {
 	}()
 
 	var lines []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
+	sc := bufio.NewScanner(file)
+	for sc.Scan() {
+		lines = append(lines, sc.Text())
 	}
 
-	if err := scanner.Err(); err != nil {
+	if err := sc.Err(); err != nil {
 		return nil, err
 	}
 
@@ -107,47 +110,47 @@ func (p *FileProcessor) readFileLines(filePath string) ([]string, error) {
 type ExtensionTypeDetector struct{}
 
 // DetectType implements TypeDetector.
-func (d *ExtensionTypeDetector) DetectType(filePath string) string {
+func (*ExtensionTypeDetector) DetectType(filePath string) string {
 	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(filePath), "."))
 
 	typeMap := map[string]string{
-		"sh":         "bash",
-		"bash":       "bash",
-		"rb":         "ruby",
-		"py":         "python",
-		"js":         "javascript",
-		"ts":         "typescript",
-		"jsx":        "javascript",
-		"tsx":        "typescript",
-		"html":       "html",
-		"htm":        "html",
-		"nix":        "nix",
-		"css":        "css",
-		"scss":       "scss",
-		"sass":       "sass",
-		"json":       "json",
-		"md":         "markdown",
-		"markdown":   "markdown",
-		"xml":        "xml",
-		"c":          "c",
-		"cpp":        "cpp",
-		"cxx":        "cpp",
-		"cc":         "cpp",
-		"h":          "c",
-		"hpp":        "cpp",
-		"hxx":        "cpp",
-		"toml":       "toml",
-		"java":       "java",
-		"rs":         "rust",
-		"go":         "go",
-		"php":        "php",
-		"pl":         "perl",
-		"sql":        "sql",
-		"templ":      "templ",
-		"yml":        "yaml",
-		"yaml":       "yaml",
-		"dockerfile": "dockerfile",
-		"makefile":   "makefile",
+		"sh":           langBash,
+		langBash:       langBash,
+		"rb":           langRuby,
+		"py":           langPython,
+		"js":           langJavaScript,
+		"ts":           langTypeScript,
+		"jsx":          langJavaScript,
+		"tsx":          langTypeScript,
+		langHTML:       langHTML,
+		"htm":          langHTML,
+		langNix:        langNix,
+		langCSS:        langCSS,
+		"scss":         langSCSS,
+		"sass":         langSCSS,
+		langJSON:       langJSON,
+		"md":           langMarkdown,
+		langMarkdown:   langMarkdown,
+		langXML:        langXML,
+		langC:          langC,
+		langCPP:        langCPP,
+		"cxx":          langCPP,
+		"cc":           langCPP,
+		"h":            langC,
+		"hpp":          langCPP,
+		"hxx":          langCPP,
+		langTOML:       langTOML,
+		langJava:       langJava,
+		"rs":           langRust,
+		langGo:         langGo,
+		langPHP:        langPHP,
+		"pl":           langPerl,
+		langSQL:        langSQL,
+		"templ":        langGo,
+		"yml":          langYAML,
+		langYAML:       langYAML,
+		langDockerfile: langDockerfile,
+		langMakefile:   langMakefile,
 	}
 
 	if fileType, exists := typeMap[ext]; exists {

@@ -29,7 +29,7 @@ type Config struct {
 }
 
 // defaultIgnoreGlobs returns standard ignore patterns.
-func (c *Config) defaultIgnoreGlobs() []string {
+func (*Config) defaultIgnoreGlobs() []string {
 	return []string{
 		".git/*", ".svn/*", ".hg/*",
 		"__pycache__/*", ".pytest_cache/*", ".mypy_cache/*",
@@ -84,7 +84,7 @@ func (a *App) Run(ctx context.Context) error {
 	a.addFilesToGlobs()
 
 	// Scan for files
-	scanCfg := scanner.Config{
+	scanCfg := &scanner.Config{
 		Directory:   a.cfg.Directory,
 		ShowAll:     a.cfg.ShowAll,
 		Recursive:   a.cfg.Recursive,
@@ -162,7 +162,7 @@ func (a *App) processAndOutput(ctx context.Context, files []scanner.FileInfo) er
 		processed := a.processor.ProcessFile(file, filter)
 
 		// Write processed file using the output formatter
-		if err := a.output.WriteFile(ctx, processed, a.cfg); err != nil {
+		if err := a.output.WriteFile(ctx, &processed, a.cfg); err != nil {
 			return fmt.Errorf("failed to write file %s: %w", file.RelPath, err)
 		}
 	}

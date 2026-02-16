@@ -1,3 +1,4 @@
+// Package catls implements the core functionality for concatenating and formatting file listings.
 package catls
 
 import (
@@ -6,16 +7,17 @@ import (
 	"html"
 )
 
-// XMLOutput handles XML output formatting.
+// XMLOutput handles XML output formatting. It implements the OutputFormatter interface to write files in XML format.
+// The XML output includes file paths, types, content, and binary indicators.
 type XMLOutput struct{}
 
-// NewXMLOutput creates a new XML output formatter.
+// NewXMLOutput creates a new XML output formatter that can be used to output file listings in XML format.
 func NewXMLOutput() *XMLOutput {
 	return &XMLOutput{}
 }
 
-// WriteHeader writes the opening XML structure.
-func (o *XMLOutput) WriteHeader(ctx context.Context) error {
+// WriteHeader writes the opening XML structure. It initializes the XML document with the root element.
+func (*XMLOutput) WriteHeader(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -28,18 +30,18 @@ func (o *XMLOutput) WriteHeader(ctx context.Context) error {
 }
 
 // WriteFile writes a single processed file to XML output.
-func (o *XMLOutput) WriteFile(ctx context.Context, file ProcessedFile, cfg *Config) error {
+func (x *XMLOutput) WriteFile(ctx context.Context, file *ProcessedFile, cfg *Config) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
 	}
 
-	return o.writeProcessedFile(file, cfg)
+	return x.writeProcessedFile(file, cfg)
 }
 
 // WriteFooter writes the closing XML structure.
-func (o *XMLOutput) WriteFooter(ctx context.Context) error {
+func (*XMLOutput) WriteFooter(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -52,7 +54,9 @@ func (o *XMLOutput) WriteFooter(ctx context.Context) error {
 }
 
 // writeProcessedFile writes a processed file to XML format.
-func (o *XMLOutput) writeProcessedFile(file ProcessedFile, cfg *Config) error {
+// It escapes special characters in file path and content to ensure valid XML.
+// Errors are written as <error> tags instead of file content.
+func (x *XMLOutput) writeProcessedFile(file *ProcessedFile, cfg *Config) error {
 	safePath := html.EscapeString(file.Info.RelPath)
 	fmt.Printf("<file path=\"%s\">\n", safePath)
 
@@ -72,7 +76,7 @@ func (o *XMLOutput) writeProcessedFile(file ProcessedFile, cfg *Config) error {
 			fmt.Printf("<type>%s</type>\n", html.EscapeString(file.FileType))
 		}
 
-		if err := o.writeContent(file, cfg); err != nil {
+		if err := x.writeContent(file, cfg); err != nil {
 			return err
 		}
 	}
@@ -83,7 +87,9 @@ func (o *XMLOutput) writeProcessedFile(file ProcessedFile, cfg *Config) error {
 }
 
 // writeContent writes the content section of a file.
-func (o *XMLOutput) writeContent(file ProcessedFile, cfg *Config) error {
+// It handles line numbering if configured and truncates content if necessary.
+// The content is wrapped in <content> tags.
+func (*XMLOutput) writeContent(file *ProcessedFile, cfg *Config) error {
 	fmt.Println("<content>")
 
 	for _, line := range file.Lines {

@@ -73,7 +73,7 @@ func TestGetRelativePath(t *testing.T) {
 				RelativeTo: tt.relativeTo,
 			}
 
-			got, err := s.getRelativePath(tt.fullPath, cfg)
+			got, err := s.getRelativePath(tt.fullPath, &cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getRelativePath() error = %v, wantErr %v", err, tt.wantErr)
 
@@ -100,7 +100,7 @@ func TestGetRelativePathWithTempDir(t *testing.T) {
 			RelativeTo: "",
 		}
 
-		got, err := s.getRelativePath(filePath, cfg)
+		got, err := s.getRelativePath(filePath, &cfg)
 		if err != nil {
 			t.Fatalf("getRelativePath() unexpected error: %v", err)
 		}
@@ -122,7 +122,7 @@ func TestGetRelativePathWithTempDir(t *testing.T) {
 			RelativeTo: tmpDir,
 		}
 
-		got, err := s.getRelativePath(filePath, cfg)
+		got, err := s.getRelativePath(filePath, &cfg)
 		if err != nil {
 			t.Fatalf("getRelativePath() unexpected error: %v", err)
 		}
@@ -144,17 +144,18 @@ func TestGetRelativePathWithTempDir(t *testing.T) {
 			RelativeTo: tmpDir2,
 		}
 
-		got, err := s.getRelativePath(filePath, cfg)
+		got, err := s.getRelativePath(filePath, &cfg)
 		if err != nil {
 			t.Fatalf("getRelativePath() unexpected error: %v", err)
 		}
 
 		// Should contain .. to navigate between temp directories
-		if !filepath.IsAbs(got) && len(got) > 0 {
-			// Result should be a relative path
-			if got == "test.txt" {
-				t.Errorf("getRelativePath() = %v, should contain path traversal", got)
-			}
+		if got == "" || filepath.IsAbs(got) {
+			return
+		}
+		// Result should be a relative path
+		if got == "test.txt" {
+			t.Errorf("getRelativePath() = %v, should contain path traversal", got)
 		}
 	})
 }

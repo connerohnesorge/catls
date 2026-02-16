@@ -41,19 +41,20 @@ func New() *Scanner {
 }
 
 // Scan discovers files according to configuration.
-func (s *Scanner) Scan(ctx context.Context, cfg Config) ([]FileInfo, error) {
+func (s *Scanner) Scan(ctx context.Context, cfg *Config) ([]FileInfo, error) {
 	var files []FileInfo
 	maxDepth := 1
 	if cfg.Recursive {
 		maxDepth = -1
 	}
 
-	type dirEntry struct {
-		path  string
-		depth int
-	}
-
 	stack := []dirEntry{{cfg.Directory, 0}}
+
+	scanCtx := &scanContext{
+		cfg:   cfg,
+		stack: &stack,
+		files: &files,
+	}
 
 	for len(stack) > 0 {
 		select {
@@ -69,59 +70,7 @@ func (s *Scanner) Scan(ctx context.Context, cfg Config) ([]FileInfo, error) {
 			continue
 		}
 
-		entries, err := os.ReadDir(current.path)
-		if err != nil {
-			if cfg.Debug {
-				fmt.Fprintf(os.Stderr, "Error accessing directory %s: %v\n", current.path, err)
-			}
-
-			continue
-		}
-
-		// Sort entries for consistent output
-		var entryNames []string
-		for _, entry := range entries {
-			entryNames = append(entryNames, entry.Name())
-		}
-		sort.Strings(entryNames)
-
-		for _, entryName := range entryNames {
-			if entryName == "." || entryName == ".." {
-				continue
-			}
-
-			if !cfg.ShowAll && strings.HasPrefix(entryName, ".") {
-				continue
-			}
-
-			fullPath := filepath.Join(current.path, entryName)
-
-			info, err := os.Stat(fullPath)
-			if err != nil {
-				continue
-			}
-
-			if info.IsDir() {
-				if !s.shouldIgnoreDir(fullPath, cfg) {
-					stack = append(stack, dirEntry{fullPath, current.depth + 1})
-				} else if cfg.Debug {
-					fmt.Fprintf(os.Stderr, "Debug: Ignoring directory: %s\n", fullPath)
-				}
-			} else if info.Mode().IsRegular() {
-				relPath, err := s.getRelativePath(fullPath, cfg)
-				if err != nil {
-					continue
-				}
-
-				isBinary := s.binaryDetector.IsBinary(fullPath)
-
-				files = append(files, FileInfo{
-					Path:     fullPath,
-					RelPath:  relPath,
-					IsBinary: isBinary,
-				})
-			}
-		}
+		s.scanDirectory(current.path, current.depth, scanCtx)
 	}
 
 	sort.Slice(files, func(i, j int) bool {
@@ -131,8 +80,78 @@ func (s *Scanner) Scan(ctx context.Context, cfg Config) ([]FileInfo, error) {
 	return files, nil
 }
 
+type dirEntry struct {
+	path  string
+	depth int
+}
+
+type scanContext struct {
+	cfg   *Config
+	stack *[]dirEntry
+	files *[]FileInfo
+}
+
+func (s *Scanner) scanDirectory(path string, depth int, ctx *scanContext) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		if ctx.cfg.Debug {
+			fmt.Fprintf(os.Stderr, "Error accessing directory %s: %v\n", path, err)
+		}
+
+		return
+	}
+
+	// Sort entries for consistent output
+	entryNames := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		entryNames = append(entryNames, entry.Name())
+	}
+	sort.Strings(entryNames)
+
+	for _, entryName := range entryNames {
+		if entryName == "." || entryName == ".." {
+			continue
+		}
+
+		if !ctx.cfg.ShowAll && strings.HasPrefix(entryName, ".") {
+			continue
+		}
+
+		fullPath := filepath.Join(path, entryName)
+		s.processEntry(fullPath, depth, ctx)
+	}
+}
+
+func (s *Scanner) processEntry(fullPath string, currentDepth int, ctx *scanContext) {
+	info, err := os.Stat(fullPath)
+	if err != nil {
+		return
+	}
+
+	if info.IsDir() {
+		if !s.shouldIgnoreDir(fullPath, ctx.cfg) {
+			*ctx.stack = append(*ctx.stack, dirEntry{fullPath, currentDepth + 1})
+		} else if ctx.cfg.Debug {
+			fmt.Fprintf(os.Stderr, "Debug: Ignoring directory: %s\n", fullPath)
+		}
+	} else if info.Mode().IsRegular() {
+		relPath, err := s.getRelativePath(fullPath, ctx.cfg)
+		if err != nil {
+			return
+		}
+
+		isBinary := s.binaryDetector.IsBinary(fullPath)
+
+		*ctx.files = append(*ctx.files, FileInfo{
+			Path:     fullPath,
+			RelPath:  relPath,
+			IsBinary: isBinary,
+		})
+	}
+}
+
 // getRelativePath returns the relative path from base directory.
-func (s *Scanner) getRelativePath(fullPath string, cfg Config) (string, error) {
+func (*Scanner) getRelativePath(fullPath string, cfg *Config) (string, error) {
 	baseDir := cfg.Directory
 
 	// If RelativeTo is set, use it instead of the scan directory

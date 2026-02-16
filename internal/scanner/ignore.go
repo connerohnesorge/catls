@@ -7,7 +7,7 @@ import (
 )
 
 // shouldIgnoreDir determines if a directory should be ignored.
-func (s *Scanner) shouldIgnoreDir(dirPath string, cfg Config) bool {
+func (s *Scanner) shouldIgnoreDir(dirPath string, cfg *Config) bool {
 	realDirPath, err := filepath.Abs(dirPath)
 	if err != nil {
 		realDirPath = dirPath
@@ -31,7 +31,7 @@ func (s *Scanner) shouldIgnoreDir(dirPath string, cfg Config) bool {
 }
 
 // matchesIgnoreDir checks if a directory matches an ignore pattern.
-func (s *Scanner) matchesIgnoreDir(dirPath, realDirPath, ignoreDir string) bool {
+func (*Scanner) matchesIgnoreDir(dirPath, realDirPath, ignoreDir string) bool {
 	// Simple directory name match
 	if !strings.Contains(ignoreDir, string(filepath.Separator)) {
 		pathParts := strings.Split(dirPath, string(filepath.Separator))

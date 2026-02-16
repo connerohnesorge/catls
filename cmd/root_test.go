@@ -36,21 +36,21 @@ func TestBuildConfig_RelativeToFlag(t *testing.T) {
 	}{
 		{
 			name:           "no relative-to flag uses default",
-			args:           []string{},
-			flags:          map[string]string{},
+			args:           make([]string, 0),
+			flags:          make(map[string]string),
 			wantRelativeTo: "",
 			wantDirectory:  ".",
 		},
 		{
 			name:           "relative-to flag set to current directory",
-			args:           []string{},
+			args:           make([]string, 0),
 			flags:          map[string]string{"relative-to": "."},
 			wantRelativeTo: ".",
 			wantDirectory:  ".",
 		},
 		{
 			name:           "relative-to flag set to absolute path",
-			args:           []string{},
+			args:           make([]string, 0),
 			flags:          map[string]string{"relative-to": "/home/user"},
 			wantRelativeTo: "/home/user",
 			wantDirectory:  ".",
@@ -135,7 +135,7 @@ func TestBuildConfig_RelativeToWithOtherFlags(t *testing.T) {
 	}
 
 	if !cfg.Recursive {
-		t.Errorf("Recursive = false, want true")
+		t.Error("Recursive = false, want true")
 	}
 
 	if string(cfg.OutputFormat) != "json" {

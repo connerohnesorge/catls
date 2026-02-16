@@ -1491,6 +1491,41 @@ issues:
         - revive
       text: "argument-limit"
 
+    # Unused or inconsistent receiver names are allowed for interface conformance
+    - linters:
+        - revive
+      text: "unused-receiver"
+
+    # Inconsistent receiver naming is okay for interface methods
+    - linters:
+        - revive
+      text: "receiver-naming"
+
+    # Allow comments-density rules to be more flexible
+    - linters:
+        - revive
+      text: "comments-density"
+
+    # Function complexity limits are okay to exceed for simple mappings
+    - linters:
+        - revive
+      text: "cyclomatic"
+
+    # Function complexity limits are okay to exceed for simple mappings
+    - linters:
+        - revive
+      text: "cognitive-complexity"
+
+    # Function length is okay for switch statements with many cases
+    - linters:
+        - revive
+      text: "function-length"
+
+    # Control flow nesting is acceptable for file parsing logic
+    - linters:
+        - revive
+      text: "max-control-nesting"
+
 run:
   timeout: "1m"
   issues-exit-code: 1

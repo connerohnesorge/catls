@@ -8,7 +8,7 @@ type OutputFormatter interface {
 	WriteHeader(ctx context.Context) error
 
 	// WriteFile writes a single processed file to the output.
-	WriteFile(ctx context.Context, file ProcessedFile, cfg *Config) error
+	WriteFile(ctx context.Context, file *ProcessedFile, cfg *Config) error
 
 	// WriteFooter writes the closing structure for the output format.
 	WriteFooter(ctx context.Context) error

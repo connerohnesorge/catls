@@ -57,11 +57,11 @@ func TestRelativeToIntegration(t *testing.T) {
 				fullPath := filepath.Join(tmpDir, path)
 				dir := filepath.Dir(fullPath)
 
-				if err := os.MkdirAll(dir, 0755); err != nil {
+				if err := os.MkdirAll(dir, 0o755); err != nil {
 					t.Fatalf("failed to create directory %s: %v", dir, err)
 				}
 
-				if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+				if err := os.WriteFile(fullPath, []byte(content), 0o644); err != nil {
 					t.Fatalf("failed to write file %s: %v", fullPath, err)
 				}
 			}
@@ -94,7 +94,9 @@ func TestRelativeToIntegration(t *testing.T) {
 			err := app.Run(context.Background())
 
 			// Restore stdout
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Fatalf("failed to close pipe: %v", err)
+			}
 			os.Stdout = oldStdout
 
 			if err != nil {
@@ -103,7 +105,9 @@ func TestRelativeToIntegration(t *testing.T) {
 
 			// Read output
 			var buf bytes.Buffer
-			io.Copy(&buf, r)
+			if _, err := io.Copy(&buf, r); err != nil {
+				t.Fatalf("failed to read output: %v", err)
+			}
 			output := buf.String()
 
 			// Verify the path in output contains expected prefix
@@ -129,11 +133,11 @@ func TestRelativeToWithNestedDirectories(t *testing.T) {
 		fullPath := filepath.Join(tmpDir, path)
 		dir := filepath.Dir(fullPath)
 
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatalf("failed to create directory %s: %v", dir, err)
 		}
 
-		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+		if err := os.WriteFile(fullPath, []byte(content), 0o644); err != nil {
 			t.Fatalf("failed to write file %s: %v", fullPath, err)
 		}
 	}
@@ -154,7 +158,9 @@ func TestRelativeToWithNestedDirectories(t *testing.T) {
 		app := New(cfg)
 		err := app.Run(context.Background())
 
-		w.Close()
+		if err := w.Close(); err != nil {
+			t.Fatalf("failed to close pipe: %v", err)
+		}
 		os.Stdout = oldStdout
 
 		if err != nil {
@@ -162,7 +168,9 @@ func TestRelativeToWithNestedDirectories(t *testing.T) {
 		}
 
 		var buf bytes.Buffer
-		io.Copy(&buf, r)
+		if _, err := io.Copy(&buf, r); err != nil {
+			t.Fatalf("failed to read output: %v", err)
+		}
 		output := buf.String()
 
 		// Should contain paths relative to project root
@@ -179,7 +187,7 @@ func TestRelativeToWithNestedDirectories(t *testing.T) {
 
 		// Should NOT contain just "main.go" or "lib/utils.go"
 		if strings.Contains(output, `path="main.go"`) {
-			t.Errorf("output should not contain bare 'main.go' when relative-to is set")
+			t.Error("output should not contain bare 'main.go' when relative-to is set")
 		}
 	})
 
@@ -199,7 +207,9 @@ func TestRelativeToWithNestedDirectories(t *testing.T) {
 		app := New(cfg)
 		err := app.Run(context.Background())
 
-		w.Close()
+		if err := w.Close(); err != nil {
+			t.Fatalf("failed to close pipe: %v", err)
+		}
 		os.Stdout = oldStdout
 
 		if err != nil {
@@ -207,7 +217,9 @@ func TestRelativeToWithNestedDirectories(t *testing.T) {
 		}
 
 		var buf bytes.Buffer
-		io.Copy(&buf, r)
+		if _, err := io.Copy(&buf, r); err != nil {
+			t.Fatalf("failed to read output: %v", err)
+		}
 		output := buf.String()
 
 		// Paths should be relative to tmpDir
@@ -229,7 +241,7 @@ func TestRelativeToWithDifferentOutputFormats(t *testing.T) {
 
 	// Create a test file
 	testFile := filepath.Join(tmpDir, "test.txt")
-	if err := os.WriteFile(testFile, []byte("test content"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("test content"), 0o644); err != nil {
 		t.Fatalf("failed to write test file: %v", err)
 	}
 
@@ -252,7 +264,9 @@ func TestRelativeToWithDifferentOutputFormats(t *testing.T) {
 			app := New(cfg)
 			err := app.Run(context.Background())
 
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Fatalf("failed to close pipe: %v", err)
+			}
 			os.Stdout = oldStdout
 
 			if err != nil {
@@ -260,7 +274,9 @@ func TestRelativeToWithDifferentOutputFormats(t *testing.T) {
 			}
 
 			var buf bytes.Buffer
-			io.Copy(&buf, r)
+			if _, err := io.Copy(&buf, r); err != nil {
+				t.Fatalf("failed to read output: %v", err)
+			}
 			output := buf.String()
 
 			// Should contain test.txt in output
@@ -270,17 +286,17 @@ func TestRelativeToWithDifferentOutputFormats(t *testing.T) {
 
 			// Verify format-specific output
 			switch format {
-			case "xml":
+			case OutputFormatXML:
 				if !strings.Contains(output, "<file") {
-					t.Errorf("xml output should contain <file tag")
+					t.Error("xml output should contain <file tag")
 				}
-			case "json":
+			case OutputFormatJSON:
 				if !strings.Contains(output, "\"path\"") {
-					t.Errorf("json output should contain path field")
+					t.Error("json output should contain path field")
 				}
-			case "markdown":
+			case OutputFormatMarkdown:
 				if !strings.Contains(output, "##") || !strings.Contains(output, "```") {
-					t.Errorf("markdown output should contain markdown formatting")
+					t.Error("markdown output should contain markdown formatting")
 				}
 			}
 		})

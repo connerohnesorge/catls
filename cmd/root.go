@@ -1,16 +1,20 @@
 // Package cmd contains the root command for the catls program.
+// The root command is the entry point for the CLI application and handles setting up all available flags.
+// It also provides command execution and configuration building.
 package cmd
 
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/connerohnesorge/catls/internal/catls"
 	"github.com/spf13/cobra"
 )
 
+// rootCmd is the main cobra command for catls.
+// It defines the usage, short description, and long description of the application.
+// The command supports various options for file listing, filtering, and output formatting.
 var rootCmd = &cobra.Command{
 	Use:   "catls [directory] [files...]",
 	Short: "List files and their contents",
@@ -19,11 +23,10 @@ It supports filtering by glob patterns, ignoring directories, and various output
 	RunE: runCatls,
 }
 
-// Execute runs the root command.
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+// Execute runs the root command and returns any error that occurs.
+// The caller is responsible for handling errors and exit codes.
+func Execute() error {
+	return rootCmd.Execute()
 }
 
 func init() {
