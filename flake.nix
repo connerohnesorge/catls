@@ -1,0 +1,131 @@
+{
+  description = "A development shell for go";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
+  };
+
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    treefmt-nix,
+    ...
+  }:
+    flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [
+          (final: prev: {
+            # Add your overlays here
+            # Example:
+            # my-overlay = final: prev: {
+            #   my-package = prev.callPackage ./my-package { };
+            # };
+            final.buildGoModule = prev.buildGo125Module;
+            buildGoModule = prev.buildGo125Module;
+          })
+        ];
+      };
+
+      rooted = exec:
+        builtins.concatStringsSep "\n"
+        [
+          ''REPO_ROOT="$(git rev-parse --show-toplevel)"''
+          exec
+        ];
+
+      scripts = {
+        dx = {
+          exec = rooted ''$EDITOR "$REPO_ROOT"/flake.nix'';
+          description = "Edit flake.nix";
+        };
+        lint = {
+          exec = ''
+            golangci-lint run
+          '';
+          description = "Run golangci-lint";
+        };
+        tests = {
+          exec = rooted ''
+            gotestsum --format short-verbose "$REPO_ROOT"/...
+          '';
+          description = "Run tests";
+          deps = [pkgs.gotestsum];
+        };
+      };
+
+      scriptPackages =
+        pkgs.lib.mapAttrs
+        (
+          name: script:
+            pkgs.writeShellApplication {
+              inherit name;
+              text = script.exec;
+              runtimeInputs = script.deps or [];
+            }
+        )
+        scripts;
+
+      treefmtModule = {
+        projectRootFile = "flake.nix";
+        programs = {
+          alejandra.enable = true; # Nix formatter
+          gofmt.enable = true; # Go formatter
+          golines.enable = true; # Go formatter (Shorter lines)
+          goimports.enable = true; # Go formatter (Organize/Clean imports)
+        };
+      };
+    in {
+      devShells.default = pkgs.mkShell {
+        name = "dev";
+
+        # Available packages on https://search.nixos.org/packages
+        packages = with pkgs;
+          [
+            alejandra # Nix
+            nixd
+            statix
+            deadnix
+
+            go_1_25 # Go Tools
+            air
+            golangci-lint
+            gopls
+            revive
+            golines
+            golangci-lint-langserver
+            gomarkdoc
+            gotests
+            gotools
+            gotestsum
+            reftools
+            pprof
+            graphviz
+            goreleaser
+          ]
+          ++ builtins.attrValues scriptPackages;
+      };
+
+      packages.default = pkgs.buildGoModule {
+        pname = "catls";
+        version = "2.0.0";
+
+        src = ./.;
+
+        vendorHash = "sha256-m5mBubfbXXqXKsygF5j7cHEY+bXhAMcXUts5KBKoLzM=";
+
+        meta = with pkgs.lib; {
+          description = "Enhanced file listing utility with XML, Markdown, and JSON output";
+          homepage = "https://github.com/connerohnesorge/catls";
+          license = licenses.mit;
+          maintainers = [];
+        };
+      };
+
+      formatter = treefmt-nix.lib.mkWrapper pkgs treefmtModule;
+    });
+}
