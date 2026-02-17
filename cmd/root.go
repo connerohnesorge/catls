@@ -79,6 +79,12 @@ func setupFlags() {
 		false,
 		"Enable debug output",
 	)
+	flags.BoolP(
+		"interactive",
+		"I",
+		false,
+		"Interactive file selection mode",
+	)
 	flags.Bool(
 		"omit-bins",
 		false,
@@ -141,6 +147,7 @@ func buildConfig(cmd *cobra.Command, args []string) (*catls.Config, error) {
 	cfg.ShowAll, _ = flags.GetBool("all")
 	cfg.Recursive, _ = flags.GetBool("recursive")
 	cfg.Debug, _ = flags.GetBool("debug")
+	cfg.Interactive, _ = flags.GetBool("interactive")
 	cfg.ShowLineNumbers, _ = flags.GetBool("line-numbers")
 	cfg.OmitBins, _ = flags.GetBool("omit-bins")
 	cfg.ContentPattern, _ = flags.GetString("pattern")

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/connerohnesorge/catls/internal/interactive"
 	"github.com/connerohnesorge/catls/internal/scanner"
 )
 
@@ -18,6 +19,7 @@ type Config struct {
 	ShowAll         bool
 	Recursive       bool
 	Debug           bool
+	Interactive     bool
 	IgnoreDir       []string
 	Globs           []string
 	IgnoreGlobs     []string
@@ -80,10 +82,8 @@ func (a *App) Run(ctx context.Context) error {
 		fmt.Fprintf(os.Stderr, "Debug: Ignoring directories: %v\n", a.cfg.IgnoreDir)
 	}
 
-	// Add files to globs if specified
 	a.addFilesToGlobs()
 
-	// Scan for files
 	scanCfg := &scanner.Config{
 		Directory:   a.cfg.Directory,
 		ShowAll:     a.cfg.ShowAll,
@@ -105,8 +105,52 @@ func (a *App) Run(ctx context.Context) error {
 		return nil
 	}
 
-	// Process and output files
+	if a.cfg.Interactive {
+		selectedFiles, err := a.runInteractiveSelector(files)
+		if err != nil {
+			return err
+		}
+
+		if selectedFiles == nil {
+			fmt.Println("No files selected.")
+			return nil
+		}
+
+		files = selectedFiles
+	}
+
 	return a.processAndOutput(ctx, files)
+}
+
+func (a *App) runInteractiveSelector(files []scanner.FileInfo) ([]scanner.FileInfo, error) {
+	items := make([]interactive.FileItem, len(files))
+	for i, f := range files {
+		items[i] = interactive.FileItem{
+			Path:     f.Path,
+			RelPath:  f.RelPath,
+			IsBinary: f.IsBinary,
+		}
+	}
+
+	selected, err := interactive.SelectFiles(items)
+	if err != nil {
+		return nil, fmt.Errorf("interactive selection failed: %w", err)
+	}
+
+	if selected == nil {
+		return nil, nil
+	}
+
+	result := make([]scanner.FileInfo, len(selected))
+	for i, s := range selected {
+		result[i] = scanner.FileInfo{
+			Path:     s.Path,
+			RelPath:  s.RelPath,
+			IsBinary: s.IsBinary,
+		}
+	}
+
+	return result, nil
 }
 
 // validateConfig ensures the configuration is valid.
