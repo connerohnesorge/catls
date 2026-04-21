@@ -116,7 +116,7 @@
 
         src = ./.;
 
-        vendorHash = "sha256-m5mBubfbXXqXKsygF5j7cHEY+bXhAMcXUts5KBKoLzM=";
+        vendorHash = "sha256-2UtazHF/Un9+aOqce0E8aED70qqoZUQYomMHGUHKs/I=";
 
         meta = with pkgs.lib; {
           description = "Enhanced file listing utility with XML, Markdown, and JSON output";
