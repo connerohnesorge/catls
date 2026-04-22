@@ -19,6 +19,8 @@ func createTestFlags() *pflag.FlagSet {
 	flags.String("pattern", "", "Only show lines matching glob PATTERN")
 	flags.BoolP("line-numbers", "n", false, "Show line numbers")
 	flags.Bool("debug", false, "Enable debug output")
+	flags.BoolP("interactive", "I", false, "Interactive file selection mode")
+	flags.BoolP("order", "O", false, "Launch a TUI to manually reorder the file list before output")
 	flags.Bool("omit-bins", false, "Skip binary files in output")
 	flags.StringP("format", "f", "xml", "Output format: xml, json, markdown")
 	flags.String("relative-to", "", "Display paths relative to this directory")
@@ -99,6 +101,59 @@ func TestBuildConfig_RelativeToFlag(t *testing.T) {
 				t.Errorf("buildConfig().Directory = %v, want %v", cfg.Directory, tt.wantDirectory)
 			}
 		})
+	}
+}
+
+func TestBuildConfig_OrderFlag(t *testing.T) {
+	tests := []struct {
+		name      string
+		setFlag   string
+		setValue  string
+		wantOrder bool
+	}{
+		{name: "default is false", setFlag: "", wantOrder: false},
+		{name: "long flag --order", setFlag: "order", setValue: "true", wantOrder: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := &cobra.Command{Use: "test"}
+			cmd.Flags().AddFlagSet(createTestFlags())
+
+			if tt.setFlag != "" {
+				if err := cmd.Flags().Set(tt.setFlag, tt.setValue); err != nil {
+					t.Fatalf("failed to set flag %s: %v", tt.setFlag, err)
+				}
+			}
+
+			cfg, err := buildConfig(cmd, nil)
+			if err != nil {
+				t.Fatalf("buildConfig() unexpected error: %v", err)
+			}
+
+			if cfg.Order != tt.wantOrder {
+				t.Errorf("cfg.Order = %v, want %v", cfg.Order, tt.wantOrder)
+			}
+		})
+	}
+}
+
+func TestBuildConfig_OrderShortFlag(t *testing.T) {
+	cmd := &cobra.Command{Use: "test"}
+	cmd.Flags().AddFlagSet(createTestFlags())
+
+	// Parse with the short flag to confirm -O is wired to "order".
+	if err := cmd.ParseFlags([]string{"-O"}); err != nil {
+		t.Fatalf("ParseFlags failed: %v", err)
+	}
+
+	cfg, err := buildConfig(cmd, nil)
+	if err != nil {
+		t.Fatalf("buildConfig() unexpected error: %v", err)
+	}
+
+	if !cfg.Order {
+		t.Error("cfg.Order = false, want true after -O")
 	}
 }
 

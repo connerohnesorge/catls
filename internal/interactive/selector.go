@@ -93,78 +93,103 @@ func (m *Model) SelectedFiles() []FileItem {
 			selected = append(selected, f)
 		}
 	}
+
 	return selected
 }
 
 // Init implements tea.Model.
-func (m *Model) Init() tea.Cmd {
+func (*Model) Init() tea.Cmd {
 	return nil
 }
 
-// Update implements tea.Model.
+// Update implements tea.Model. It dispatches input to typed handlers and
+// forwards any residual message to the embedded viewport.
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var (
-		cmd  tea.Cmd
-		cmds []tea.Cmd
-	)
-
-	switch msg := msg.(type) {
+	switch typed := msg.(type) {
 	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, m.keys.Quit):
-			m.quitting = true
-			return m, tea.Quit
-
-		case key.Matches(msg, m.keys.Confirm):
-			m.confirmed = true
-			return m, tea.Quit
-
-		case key.Matches(msg, m.keys.Up):
-			if m.cursor > 0 {
-				m.cursor--
-				m.ensureCursorVisible()
-			}
-
-		case key.Matches(msg, m.keys.Down):
-			if m.cursor < len(m.files)-1 {
-				m.cursor++
-				m.ensureCursorVisible()
-			}
-
-		case key.Matches(msg, m.keys.Toggle):
-			if len(m.files) > 0 {
-				m.files[m.cursor].Selected = !m.files[m.cursor].Selected
-			}
-
-		case key.Matches(msg, m.keys.SelectAll):
-			for i := range m.files {
-				m.files[i].Selected = true
-			}
-
-		case key.Matches(msg, m.keys.DeselectAll):
-			for i := range m.files {
-				m.files[i].Selected = false
-			}
+		if cmd, done := m.handleKey(typed); done {
+			return m, cmd
 		}
-
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.viewport = viewport.New(msg.Width, msg.Height-4)
-		m.viewport.SetContent(m.renderContent())
-		m.ready = true
+		m.resize(typed.Width, typed.Height)
+
 		return m, nil
 	}
 
-	if m.ready {
-		m.viewport.SetContent(m.renderContent())
-		m.viewport, cmd = m.viewport.Update(msg)
-		cmds = append(cmds, cmd)
+	if !m.ready {
+		return m, nil
 	}
 
-	return m, tea.Batch(cmds...)
+	m.viewport.SetContent(m.renderContent())
+
+	var cmd tea.Cmd
+	m.viewport, cmd = m.viewport.Update(msg)
+
+	return m, cmd
 }
 
+// handleKey routes a key event. The returned bool is true when the caller
+// should immediately return with the supplied command.
+func (m *Model) handleKey(msg tea.KeyMsg) (tea.Cmd, bool) {
+	switch {
+	case key.Matches(msg, m.keys.Quit):
+		m.quitting = true
+
+		return tea.Quit, true
+	case key.Matches(msg, m.keys.Confirm):
+		m.confirmed = true
+
+		return tea.Quit, true
+	case key.Matches(msg, m.keys.Up):
+		m.moveCursor(-1)
+	case key.Matches(msg, m.keys.Down):
+		m.moveCursor(1)
+	case key.Matches(msg, m.keys.Toggle):
+		m.toggleCurrent()
+	case key.Matches(msg, m.keys.SelectAll):
+		m.setAll(true)
+	case key.Matches(msg, m.keys.DeselectAll):
+		m.setAll(false)
+	}
+
+	return nil, false
+}
+
+// moveCursor shifts the cursor by delta, clamped to the list bounds.
+func (m *Model) moveCursor(delta int) {
+	next := m.cursor + delta
+	if next < 0 || next >= len(m.files) {
+		return
+	}
+	m.cursor = next
+	m.ensureCursorVisible()
+}
+
+// toggleCurrent flips the selection state of the row under the cursor.
+func (m *Model) toggleCurrent() {
+	if len(m.files) == 0 {
+		return
+	}
+	m.files[m.cursor].Selected = !m.files[m.cursor].Selected
+}
+
+// setAll sets every file's selected flag to the same value.
+func (m *Model) setAll(selected bool) {
+	for i := range m.files {
+		m.files[i].Selected = selected
+	}
+}
+
+// resize initializes or updates the internal viewport for the given size.
+func (m *Model) resize(w, h int) {
+	m.width = w
+	m.height = h
+	m.viewport = viewport.New(w, h-4)
+	m.viewport.SetContent(m.renderContent())
+	m.ready = true
+}
+
+// ensureCursorVisible scrolls the viewport so the cursor row stays on screen.
 func (m *Model) ensureCursorVisible() {
 	if !m.ready {
 		return
@@ -180,6 +205,8 @@ func (m *Model) ensureCursorVisible() {
 	}
 }
 
+// Styling used to render the selector. Colors are standard 16-color indices so
+// the UI adapts to the user's terminal theme.
 var (
 	headerStyle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
 	selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
@@ -201,6 +228,7 @@ func (m *Model) View() string {
 
 	if m.confirmed {
 		selected := m.SelectedFiles()
+
 		return fmt.Sprintf("Selected %d file(s).\n", len(selected))
 	}
 
@@ -220,10 +248,13 @@ func (m *Model) View() string {
 	return fmt.Sprintf("%s\n%s\n%s", header, content, dimStyle.Render(footer))
 }
 
-func (m *Model) renderKeyHelp(k key.Binding) string {
+// renderKeyHelp formats a single key binding for the footer help strip.
+func (*Model) renderKeyHelp(k key.Binding) string {
 	return fmt.Sprintf("[%s %s]", k.Keys()[0], k.Help().Desc)
 }
 
+// renderContent produces the scrollable body: one row per file with cursor,
+// checkbox, and path (dimmed for binaries).
 func (m *Model) renderContent() string {
 	var b strings.Builder
 
