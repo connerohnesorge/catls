@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/connerohnesorge/catls/internal/interactive"
+	"github.com/connerohnesorge/catls/internal/reorder"
 	"github.com/connerohnesorge/catls/internal/scanner"
 )
 
@@ -20,6 +21,7 @@ type Config struct {
 	Recursive       bool
 	Debug           bool
 	Interactive     bool
+	Order           bool
 	IgnoreDir       []string
 	Globs           []string
 	IgnoreGlobs     []string
@@ -105,24 +107,66 @@ func (a *App) Run(ctx context.Context) error {
 		return nil
 	}
 
-	if a.cfg.Interactive {
-		selectedFiles, err := a.runInteractiveSelector(files)
-		if err != nil {
-			return err
-		}
-
-		if selectedFiles == nil {
-			fmt.Println("No files selected.")
-			return nil
-		}
-
-		files = selectedFiles
+	selected, cont, err := a.applyInteractive(files)
+	if err != nil {
+		return err
 	}
+	if !cont {
+		return nil
+	}
+	files = selected
+
+	ordered, cont, err := a.applyReorder(files)
+	if err != nil {
+		return err
+	}
+	if !cont {
+		return nil
+	}
+	files = ordered
 
 	return a.processAndOutput(ctx, files)
 }
 
-func (a *App) runInteractiveSelector(files []scanner.FileInfo) ([]scanner.FileInfo, error) {
+func (a *App) applyInteractive(files []scanner.FileInfo) ([]scanner.FileInfo, bool, error) {
+	if !a.cfg.Interactive {
+		return files, true, nil
+	}
+
+	selected, err := a.runInteractiveSelector(files)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if selected == nil {
+		fmt.Println("No files selected.")
+
+		return nil, false, nil
+	}
+
+	return selected, true, nil
+}
+
+func (a *App) applyReorder(files []scanner.FileInfo) ([]scanner.FileInfo, bool, error) {
+	if !a.cfg.Order || len(files) == 0 {
+		return files, true, nil
+	}
+
+	ordered, err := reorder.Reorder(files)
+	if err != nil {
+		return nil, false, fmt.Errorf("reorder TUI failed: %w", err)
+	}
+
+	if ordered == nil {
+		fmt.Println("Reorder cancelled.")
+
+		return nil, false, nil
+	}
+
+	return ordered, true, nil
+}
+
+func (*App) runInteractiveSelector(files []scanner.FileInfo) ([]scanner.FileInfo, error) {
 	items := make([]interactive.FileItem, len(files))
 	for i, f := range files {
 		items[i] = interactive.FileItem{

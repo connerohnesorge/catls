@@ -85,6 +85,12 @@ func setupFlags() {
 		false,
 		"Interactive file selection mode",
 	)
+	flags.BoolP(
+		"order",
+		"O",
+		false,
+		"Launch a TUI to manually reorder the file list before output",
+	)
 	flags.Bool(
 		"omit-bins",
 		false,
@@ -148,6 +154,7 @@ func buildConfig(cmd *cobra.Command, args []string) (*catls.Config, error) {
 	cfg.Recursive, _ = flags.GetBool("recursive")
 	cfg.Debug, _ = flags.GetBool("debug")
 	cfg.Interactive, _ = flags.GetBool("interactive")
+	cfg.Order, _ = flags.GetBool("order")
 	cfg.ShowLineNumbers, _ = flags.GetBool("line-numbers")
 	cfg.OmitBins, _ = flags.GetBool("omit-bins")
 	cfg.ContentPattern, _ = flags.GetString("pattern")
